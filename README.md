@@ -1,3 +1,3 @@
-# [Your plugin name]
+# DatoCMS Slug With Tree Collections
 
-[Describe what your plugin does, and how users you can configure it! Screenshots are always welcome!]
+A simple button to build the slug path with parents in tree collections.
