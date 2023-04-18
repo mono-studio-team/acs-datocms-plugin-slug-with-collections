@@ -136,4 +136,4 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
   );
 };
 
-export default SlugWithCollections;
+export default BuildSlugButton;
