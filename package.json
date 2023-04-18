@@ -1,5 +1,5 @@
 {
-  "name": "datocms-plugin-slug-with-collections",
+  "name": "datocms-plugin-slug-with-tree-collections",
   "version": "0.1.0",
   "private": true,
   "dependencies": {

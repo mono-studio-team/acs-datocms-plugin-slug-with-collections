@@ -6,7 +6,7 @@ type PropsType = {
   ctx: RenderFieldExtensionCtx;
 };
 
-const SlugWithCollections = ({ ctx }: PropsType) => {
+const BuildSlugButton = ({ ctx }: PropsType) => {
   const [loading, setLoading] = useState(false);
   const handleClick = async () => {
     console.log(ctx);
