@@ -8,14 +8,18 @@ type PropsType = {
 
 const BuildSlugButton = ({ ctx }: PropsType) => {
   const [loading, setLoading] = useState(false);
+
   const handleClick = async () => {
     console.log(ctx);
     setLoading(true);
-    const response = await fetch("https://graphql.datocms.com", {
+
+    const query = buildQuery(ctx);
+
+    const { data } = await fetch("https://graphql.datocms.com", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Environment": "main-copy-julien",
+        "X-Environment": ctx.environment,
         Accept: "application/json",
         Authorization: `Bearer ${
           ctx.plugin.attributes.parameters
@@ -24,63 +28,71 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
         }`,
         "X-Include-Drafts": "true",
       },
-      body: JSON.stringify({
-        query: `
-          query {
-            allDpages(locale: en, filter: { parent: { exists: true } }) {
-              id
-              title
-              slug
+      body: JSON.stringify({ query }),
+    }).then((res) => res.json());
+
+    const { allDpages } = data;
+    let page = allDpages[0];
+    let slugs = [];
+    slugs.push(page.slug);
+
+    while (page.parent) {
+      page = page.parent;
+
+      if (page.slug) {
+        slugs.push(page.slug);
+      }
+    }
+
+    slugs.map((slug) => {
+      return slug.toLowerCase().split(" ").join("-");
+    });
+    slugs.reverse();
+    ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
+
+    setLoading(false);
+  };
+
+  const buildQuery = (ctx: RenderFieldExtensionCtx) => {
+    const isLocalized = ctx.field.attributes.localized;
+    const locale = ctx.locale;
+    const itemId = ctx.item ? ctx.item.id : null;
+    const getPageParams = isLocalized
+      ? `
+      id
+      slug
+      _allSlugLocales {
+        locale
+        value
+      }
+    `
+      : `
+        id
+        slug
+      `;
+
+    return `
+    query {
+      allDpages(locale: ${locale}, filter: { parent: { exists: true }, id: { eq: ${itemId}} }) {
+       ${getPageParams}
+        parent {
+          ${getPageParams}
+          parent {
+            ${getPageParams}
+            parent {
+              ${getPageParams}
               parent {
-                id
-                title
-                slug
+                ${getPageParams}
                 parent {
-                  id
-                  title
-                  slug
-                  parent {
-                    id
-                    title
-                    slug
-                    parent {
-                      id
-                      title
-                      slug
-                    }
-                  }
+                  ${getPageParams}
                 }
               }
             }
           }
-        `,
-      }),
-    });
-
-    if (response.ok) {
-      const { data } = await response.json();
-      const { allDpages: pages } = data;
-      const itemId = ctx.item ? ctx.item.id : null;
-      let slugs = [];
-
-      if (itemId) {
-        let page = pages.find((p: any) => p.id === itemId);
-        slugs.push(page.slug);
-        while (page.parent) {
-          page = page.parent;
-          slugs.push(page.slug);
         }
-
-        console.log(slugs);
-
-        slugs.map((slug) => {
-          return slug.toLowerCase().split(" ").join("-");
-        });
-        slugs.reverse();
-        ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
       }
     }
-    setLoading(false);
+  `;
   };
   return (
     <Canvas ctx={ctx}>
