@@ -1,16 +1,28 @@
 import { RenderFieldExtensionCtx } from "datocms-plugin-sdk";
 import { Canvas } from "datocms-react-ui";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PropsType = {
   ctx: RenderFieldExtensionCtx;
 };
 
+type ErrorStateType = null | {
+  code: number;
+  message: string;
+};
+
 const BuildSlugButton = ({ ctx }: PropsType) => {
+  const [currentSlug, setCurrentSlug] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<ErrorStateType>(null);
+
+  useEffect(() => {
+    const allSlugs: any = ctx.formValues.slug;
+    const localeSlug = allSlugs[ctx.locale];
+    setCurrentSlug(localeSlug);
+  }, [ctx]);
 
   const handleClick = async () => {
-    console.log(ctx);
     setLoading(true);
 
     const query = buildQuery(ctx);
@@ -33,22 +45,35 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
 
     const { allDpages } = data;
     let page = allDpages[0];
+    let isParentNull = false;
     let slugs = [];
-    slugs.push(page.slug);
+    const pageSlugSplitted = (page.slug || currentSlug || "").split("/");
+    const pageSlugWithoutParent = pageSlugSplitted[pageSlugSplitted.length - 1];
+
+    slugs.push(pageSlugWithoutParent);
 
     while (page.parent) {
       page = page.parent;
 
-      if (page.slug) {
-        slugs.push(page.slug);
+      if (!page.slug) {
+        isParentNull = true;
+        break;
       }
+      slugs.push(page.slug);
     }
 
-    slugs.map((slug) => {
-      return slug.toLowerCase().split(" ").join("-");
-    });
-    slugs.reverse();
-    ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
+    if (!isParentNull) {
+      slugs.map((slug) => {
+        return slug.toLowerCase().split(" ").join("-");
+      });
+      slugs.reverse();
+      ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
+    } else {
+      setError({
+        code: 404,
+        message: `Parent not found. Please, check if you set the slugs for all parent pages with ${ctx.locale.toUpperCase()} locale.`,
+      });
+    }
 
     setLoading(false);
   };
@@ -73,7 +98,7 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
 
     return `
     query {
-      allDpages(locale: ${locale}, filter: { parent: { exists: true }, id: { eq: ${itemId}} }) {
+      allDpages(locale: ${locale}, filter: { id: { eq: ${itemId}} }) {
        ${getPageParams}
         parent {
           ${getPageParams}
@@ -94,6 +119,7 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
     }
   `;
   };
+
   return (
     <Canvas ctx={ctx}>
       <button
@@ -115,7 +141,7 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
                 clipRule="evenodd"
               />
             </svg>
-            Build slug
+            Build slug with parent pages
           </>
         )}
         {loading && (
@@ -144,6 +170,11 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
           </>
         )}
       </button>
+      {error && (
+        <div style={{ color: "#ff5e49", fontSize: ".875rem" }} className="mt-2">
+          {error.message}
+        </div>
+      )}
     </Canvas>
   );
 };
