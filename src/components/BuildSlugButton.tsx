@@ -12,14 +12,19 @@ type ErrorStateType = null | {
 };
 
 const BuildSlugButton = ({ ctx }: PropsType) => {
+  const [fieldApiKey, setFieldApiKey] = useState<string>("");
+  const [itemApiKey, setItemApiKey] = useState<string>("");
   const [currentSlug, setCurrentSlug] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<ErrorStateType>(null);
 
   useEffect(() => {
+    console.log(ctx);
     const allSlugs: any = ctx.formValues.slug;
     const localeSlug = allSlugs[ctx.locale];
     setCurrentSlug(localeSlug);
+    setFieldApiKey(ctx.field.attributes.api_key);
+    setItemApiKey(ctx.itemType.attributes.api_key);
   }, [ctx]);
 
   const handleClick = async () => {
@@ -43,11 +48,16 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
       body: JSON.stringify({ query }),
     }).then((res) => res.json());
 
-    const { allDpages } = data;
-    let page = allDpages[0];
-    let isParentNull = false;
+    let page = data[itemApiKey];
+    let isSlugParentNull = false;
     let slugs = [];
-    const pageSlugSplitted = (page.slug || currentSlug || "").split("/");
+
+    // Split slug by "/" to catch only the end of the path
+    const pageSlugSplitted = (page[fieldApiKey] || currentSlug || "").split(
+      "/"
+    );
+
+    // To avoid duplicating the parent's slug in the final slug
     const pageSlugWithoutParent = pageSlugSplitted[pageSlugSplitted.length - 1];
 
     slugs.push(pageSlugWithoutParent);
@@ -55,14 +65,14 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
     while (page.parent) {
       page = page.parent;
 
-      if (!page.slug) {
-        isParentNull = true;
+      if (!page[fieldApiKey]) {
+        isSlugParentNull = true;
         break;
       }
-      slugs.push(page.slug);
+      slugs.push(page[fieldApiKey]);
     }
 
-    if (!isParentNull) {
+    if (!isSlugParentNull) {
       slugs.map((slug) => {
         return slug.toLowerCase().split(" ").join("-");
       });
@@ -83,12 +93,12 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
     const itemId = ctx.item ? ctx.item.id : null;
     const getPageParams = `
       id
-      slug
+      ${fieldApiKey}
     `;
 
     return `
     query {
-      allDpages(locale: ${locale}, filter: { id: { eq: ${itemId}} }) {
+      ${itemApiKey}(locale: ${locale}, filter: { id: { eq: ${itemId}} }) {
        ${getPageParams}
         parent {
           ${getPageParams}
