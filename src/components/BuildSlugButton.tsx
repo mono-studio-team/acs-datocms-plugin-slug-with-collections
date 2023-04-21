@@ -79,22 +79,12 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
   };
 
   const buildQuery = (ctx: RenderFieldExtensionCtx) => {
-    const isLocalized = ctx.field.attributes.localized;
     const locale = ctx.locale;
     const itemId = ctx.item ? ctx.item.id : null;
-    const getPageParams = isLocalized
-      ? `
+    const getPageParams = `
       id
       slug
-      _allSlugLocales {
-        locale
-        value
-      }
-    `
-      : `
-        id
-        slug
-      `;
+    `;
 
     return `
     query {
