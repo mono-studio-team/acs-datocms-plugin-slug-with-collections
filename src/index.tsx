@@ -26,6 +26,9 @@ connect({
   renderFieldExtension(fieldExtensionId: string, ctx: RenderFieldExtensionCtx) {
     switch (fieldExtensionId) {
       case "slugWithTreeCollections":
+        if (!ctx.item) {
+          return null;
+        }
         return render(<BuildSlugButton ctx={ctx} />);
     }
   },
