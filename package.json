@@ -1,7 +1,17 @@
 {
-  "name": "datocms-plugin-slug-with-tree-collections",
+  "name": "datocms-plugin-slug-with-collections",
   "version": "0.1.0",
-  "private": true,
+  "homepage": "https://github.com/JulClt/datocms-plugin-slug-with-collections",
+  "description": "Build the slug of child pages from parent pages in just a single click.",
+  "files": [
+    "build",
+    "docs"
+  ],
+  "keywords": [
+    "datocms-plugin",
+    "tree-collections",
+    "slug"
+  ],
   "dependencies": {
     "@types/node": "^18.15.11",
     "@types/react": "^18.0.35",
@@ -43,9 +53,9 @@
     "tailwindcss": "^3.3.1"
   },
   "datoCmsPlugin": {
-    "title": "",
-    "previewImage": "",
-    "coverImage": "",
+    "title": "Slug With Collections",
+    "previewImage": "docs/preview.mp4",
+    "coverImage": "docs/cover.png",
     "entryPoint": "build/index.html"
   }
 }

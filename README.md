@@ -1,3 +1,3 @@
-# DatoCMS Slug With Tree Collections
+# DatoCMS Plugin: Slug With Collections
 
-A simple button to build the slug path with parents in tree collections.
+Build the slug of child pages from parent pages in just a single click.
