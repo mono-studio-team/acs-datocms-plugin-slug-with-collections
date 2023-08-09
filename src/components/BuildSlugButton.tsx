@@ -52,64 +52,89 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
     let isSlugParentNull = false;
     let slugs = [];
 
-    // Split slug by "/" to catch only the end of the path
-    const pageSlugSplitted = (page[fieldApiKey] || currentSlug || "").split(
-      "/"
-    );
+    if (Number(ctx.itemType.id) !== 323151) {
+      // Split slug by "/" to catch only the end of the path
+      const pageSlugSplitted = (page[fieldApiKey] || currentSlug || "").split(
+        "/"
+      );
 
-    // To avoid duplicating the parent's slug in the final slug
-    const pageSlugWithoutParent = pageSlugSplitted[pageSlugSplitted.length - 1];
+      // To avoid duplicating the parent's slug in the final slug
+      const pageSlugWithoutParent =
+        pageSlugSplitted[pageSlugSplitted.length - 1];
 
-    slugs.push(pageSlugWithoutParent);
+      slugs.push(pageSlugWithoutParent);
 
-    while (page.parent) {
-      page = page.parent;
+      while (page.parent) {
+        page = page.parent;
 
-      if (!page[fieldApiKey]) {
-        isSlugParentNull = true;
-        break;
+        if (!page[fieldApiKey]) {
+          isSlugParentNull = true;
+          break;
+        }
+        slugs.push(page[fieldApiKey]);
       }
-      slugs.push(page[fieldApiKey]);
-    }
 
-    if (!isSlugParentNull) {
-      slugs.map((slug) => {
+      if (!isSlugParentNull) {
+        slugs.map((slug) => {
+          return slug.toLowerCase().split(" ").join("-");
+        });
+        slugs.reverse();
+        ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
+      } else {
+        setError({
+          code: 404,
+          message: `Parent not found. Please, check if you set the slugs for all parent pages with ${ctx.locale.toUpperCase()} locale.`,
+        });
+      }
+    } else {
+      slugs.push(data.allBlogPosts[0].category.name);
+      slugs.push(data.allBlogPosts[0].slug);
+
+      slugs = slugs.map((slug) => {
         return slug.toLowerCase().split(" ").join("-");
       });
-      slugs.reverse();
-      ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
-    } else {
-      setError({
-        code: 404,
-        message: `Parent not found. Please, check if you set the slugs for all parent pages with ${ctx.locale.toUpperCase()} locale.`,
-      });
-    }
 
+      ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
+    }
     setLoading(false);
   };
 
   const buildQuery = (ctx: RenderFieldExtensionCtx) => {
     const locale = ctx.locale;
     const itemId = ctx.item ? ctx.item.id : null;
-    const getPageParams = `
+    const getParams = `
       id
       ${fieldApiKey}
     `;
 
+    if (Number(ctx.itemType.id) === 323151) {
+      return `
+        query {
+          allBlogPosts(locale: ${locale}, filter: { id: { eq: ${itemId}} }) {
+            ${getParams}
+            category {
+              name
+              id
+            }
+          }
+        }
+      `;
+    }
+
     return `
     query {
       ${itemApiKey}(locale: ${locale}, filter: { id: { eq: ${itemId}} }) {
-       ${getPageParams}
+       ${getParams}
         parent {
-          ${getPageParams}
+          ${getParams}
           parent {
-            ${getPageParams}
+            ${getParams}
             parent {
-              ${getPageParams}
+              ${getParams}
               parent {
-                ${getPageParams}
+                ${getParams}
                 parent {
-                  ${getPageParams}
+                  ${getParams}
                 }
               }
             }
