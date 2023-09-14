@@ -71,7 +71,11 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
           isSlugParentNull = true;
           break;
         }
-        slugs.push(page[fieldApiKey]);
+        let slug = page[fieldApiKey];
+        if (slug.includes('/')) {
+          slug = slug.split('/')[slug.split('/').length - 1];
+        }
+        slugs.push(slug);
       }
 
       if (!isSlugParentNull) {
