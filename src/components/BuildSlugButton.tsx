@@ -1,133 +1,135 @@
-import { RenderFieldExtensionCtx } from "datocms-plugin-sdk";
-import { Canvas } from "datocms-react-ui";
-import { useEffect, useState } from "react";
+import { RenderFieldExtensionCtx } from 'datocms-plugin-sdk'
+import { Canvas } from 'datocms-react-ui'
+import { useEffect, useState } from 'react'
 
 type PropsType = {
-  ctx: RenderFieldExtensionCtx;
-};
+  ctx: RenderFieldExtensionCtx
+}
 
 type ErrorStateType = null | {
-  code: number;
-  message: string;
-};
+  code: number
+  message: string
+}
 
 const BuildSlugButton = ({ ctx }: PropsType) => {
-  const [fieldApiKey, setFieldApiKey] = useState<string>("");
-  const [itemApiKey, setItemApiKey] = useState<string>("");
-  const [currentSlug, setCurrentSlug] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<ErrorStateType>(null);
+  const [fieldApiKey, setFieldApiKey] = useState<string>('')
+  const [itemApiKey, setItemApiKey] = useState<string>('')
+  const [currentSlug, setCurrentSlug] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<ErrorStateType>(null)
 
   useEffect(() => {
-    console.log(ctx);
-    const allSlugs: any = ctx.formValues.slug;
-    const localeSlug = allSlugs[ctx.locale];
-    setCurrentSlug(localeSlug);
-    setFieldApiKey(ctx.field.attributes.api_key);
-    setItemApiKey(ctx.itemType.attributes.api_key);
-  }, [ctx]);
+    const allSlugs: any = ctx.formValues.slug
+    const localeSlug = allSlugs[ctx.locale]
+    setCurrentSlug(localeSlug)
+    setFieldApiKey(ctx.field.attributes.api_key)
+    setItemApiKey(ctx.itemType.attributes.api_key)
+  }, [ctx])
 
   const handleClick = async () => {
-    setLoading(true);
+    setLoading(true)
 
-    const query = buildQuery(ctx);
+    const query = buildQuery(ctx)
 
-    const { data } = await fetch("https://graphql.datocms.com", {
-      method: "POST",
+    const { data } = await fetch('https://graphql.datocms.com', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "X-Environment": ctx.environment,
-        Accept: "application/json",
+        'Content-Type': 'application/json',
+        'X-Environment': ctx.environment,
+        Accept: 'application/json',
         Authorization: `Bearer ${
           ctx.plugin.attributes.parameters
             ? ctx.plugin.attributes.parameters.readAPIToken
-            : ""
+            : ''
         }`,
-        "X-Include-Drafts": "true",
+        'X-Include-Drafts': 'true',
       },
       body: JSON.stringify({ query }),
-    }).then((res) => res.json());
+    }).then((res) => res.json())
 
-    let page = data[itemApiKey];
-    let isSlugParentNull = false;
-    let slugs = [];
+    let page = data[itemApiKey]
+    let isSlugParentNull = false
+    let slugs = []
 
     if (Number(ctx.itemType.id) !== 323151) {
       // Split slug by "/" to catch only the end of the path
-      const pageSlugSplitted = (page[fieldApiKey] || currentSlug || "").split(
-        "/"
-      );
+      const pageSlugSplitted = (page[fieldApiKey] || currentSlug || '').split(
+        '/'
+      )
 
       // To avoid duplicating the parent's slug in the final slug
       const pageSlugWithoutParent =
-        pageSlugSplitted[pageSlugSplitted.length - 1];
+        pageSlugSplitted[pageSlugSplitted.length - 1]
 
-      slugs.push(pageSlugWithoutParent);
+      slugs.push(pageSlugWithoutParent)
 
       while (page.parent) {
-        page = page.parent;
+        page = page.parent
 
         if (!page[fieldApiKey]) {
-          isSlugParentNull = true;
-          break;
+          isSlugParentNull = true
+          break
         }
-        let slug = page[fieldApiKey];
+        let slug = page[fieldApiKey]
         if (slug.includes('/')) {
-          slug = slug.split('/')[slug.split('/').length - 1];
+          slug = slug.split('/')[slug.split('/').length - 1]
         }
-        slugs.push(slug);
+        slugs.push(slug)
       }
 
       if (!isSlugParentNull) {
         slugs.map((slug) => {
-          return slug.toLowerCase().split(" ").join("-");
-        });
-        slugs.reverse();
-        ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
+          return slug.toLowerCase().split(' ').join('-')
+        })
+        slugs.reverse()
+        ctx.setFieldValue(ctx.fieldPath, slugs.join('/'))
       } else {
         setError({
           code: 404,
           message: `Parent not found. Please, check if you set the slugs for all parent pages with ${ctx.locale.toUpperCase()} locale.`,
-        });
+        })
       }
     } else {
-      slugs.push(data.allBlogPosts[0].category.name);
-      slugs.push(data.allBlogPosts[0].slug);
+      slugs.push(data.allBlogPosts[0].category.name)
+      slugs.push(data.allBlogPosts[0].slug)
 
       slugs = slugs.map((slug) => {
-        return slug.toLowerCase().split(" ").join("-");
-      });
+        return slug.toLowerCase().split(' ').join('-')
+      })
 
-      ctx.setFieldValue(ctx.fieldPath, slugs.join("/"));
+      ctx.setFieldValue(ctx.fieldPath, slugs.join('/'))
     }
-    setLoading(false);
-  };
+    setLoading(false)
+  }
 
   const buildQuery = (ctx: RenderFieldExtensionCtx) => {
-    const locale = ctx.locale;
-    const itemId = ctx.item ? ctx.item.id : null;
+    const locale = ctx.locale
+    const itemId = ctx.item ? ctx.item.id : null
     const getParams = `
       id
       ${fieldApiKey}
-    `;
+      title
+    `
 
     if (Number(ctx.itemType.id) === 323151) {
       return `
         query {
-          allBlogPosts(locale: ${locale}, filter: { id: { eq: ${itemId}} }) {
+          allBlogPosts(locale: ${locale}, filter: { id: { eq: "${itemId}"} }) {
             ${getParams}
             category {
               name
               id
+              slug
+              position
             }
           }
         }
-      `;
+      `
     }
 
     return `
     query {
-      ${itemApiKey}(locale: ${locale}, filter: { id: { eq: ${itemId}} }) {
+      ${itemApiKey}(locale: ${locale}, filter: { id: { eq: "${itemId}"} }) {
        ${getParams}
         parent {
           ${getParams}
@@ -146,8 +148,8 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
         }
       }
     }
-  `;
-  };
+  `
+  }
 
   return (
     <Canvas ctx={ctx}>
@@ -200,12 +202,12 @@ const BuildSlugButton = ({ ctx }: PropsType) => {
         )}
       </button>
       {error && (
-        <div style={{ color: "#ff5e49", fontSize: ".875rem" }} className="mt-2">
+        <div style={{ color: '#ff5e49', fontSize: '.875rem' }} className="mt-2">
           {error.message}
         </div>
       )}
     </Canvas>
-  );
-};
+  )
+}
 
-export default BuildSlugButton;
+export default BuildSlugButton
